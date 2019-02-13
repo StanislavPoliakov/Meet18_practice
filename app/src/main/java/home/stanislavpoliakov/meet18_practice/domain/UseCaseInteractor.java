@@ -8,6 +8,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import javax.inject.Inject;
 import home.stanislavpoliakov.meet18_practice.WeatherApplication;
+import io.reactivex.Observable;
 
 public class UseCaseInteractor implements DomainContract.UseCase {
     private static final String TAG = "meet17_logs";
@@ -22,43 +23,16 @@ public class UseCaseInteractor implements DomainContract.UseCase {
         WeatherApplication.getInteractorComponent().inject(this);
     }
 
-    /**
+    /** RxJava
      * Callback из Presenter.
-     * У нас больше нет workThread, потому что нужно возвращаемое значение из "модели" в "презентер".
-     * Вместо этого запускаем в презентере AsyncTask, с помощью которого запускаем работу UseCase. А
-     * работу мы запускаем в одном потоке (singleThreadExecutor), потому что это совокупность
-     * последовательных задач, и результат отдаем на вызывающую сторону (в Presenter).
-     *
-     * Executor выбран для того, чтобы вернуть результат из Future, а AsyncTask - для того, чтобы
-     * он (AsyncTask) блокировался в ожидании результатов работы
      *
      * @param cityLocation координаты города в формате String
      */
     @WorkerThread
     @Override
-    public Weather getData(String cityLocation) {
-        //Создаем Executor
-        ExecutorService pool = Executors.newSingleThreadExecutor();
-
-        //Описываем дейстия, которые необходимо выполнить
-        Callable<Weather> getWeather = () -> {
-            Weather weather = networkGateway.fetchData(cityLocation);
-            databaseGateway.saveData(weather);
-
-            //Возвращаем результат
-            return databaseGateway.loadData();
-        };
-        try {
-            return pool.submit(getWeather).get();
-        } catch (InterruptedException ex) {
-            ex.printStackTrace();
-        } catch (ExecutionException ex) {
-            ex.printStackTrace();
-        } finally {
-
-            //Освобождаем Executor
-            pool.shutdown();
-        }
-        return null;
+    public Observable<Weather> getData(String cityLocation) {
+        return networkGateway.fetchData(cityLocation)
+                .doOnNext(databaseGateway::saveData)
+                .map(w -> databaseGateway.loadData());
     }
 }
