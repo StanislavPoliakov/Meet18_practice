@@ -1,29 +1,31 @@
 package home.stanislavpoliakov.meet18_practice.data.network;
 
-import android.util.Log;
-
-import java.io.IOException;
-
 import home.stanislavpoliakov.meet18_practice.domain.Weather;
 import home.stanislavpoliakov.meet18_practice.domain.DomainContract;
+import io.reactivex.Observable;
 import retrofit2.Response;
 
 public class NetworkGateway implements DomainContract.NetworkOperations {
-    private static final String TAG = "meet17_logs";
+    private static final String TAG = "meet18_logs";
 
+    /**
+     * RxJava
+     * @param cityLocation координаты города
+     * @return
+     */
     @Override
-    public Weather fetchData(String cityLocation) {
-        Response<Weather> weatherResponse = getWeather(cityLocation);
-        return weatherResponse.body();
+    public Observable<Weather> fetchData(String cityLocation) {
+        return getWeather(cityLocation)
+                .map(Response::body);
     }
 
-    private Response<Weather> getWeather(String locationPoint) {
+    /**
+     * RxJava
+     * @param locationPoint
+     * @return
+     */
+    private Observable<Response<Weather>> getWeather(String locationPoint){
         RetrofitHelper helper = new RetrofitHelper();
-        try {
-            return helper.getService().getWeather(locationPoint).execute();
-        } catch (IOException ex) {
-            Log.w(TAG, "Response Error ", ex);
-        }
-        return null;
+        return Observable.fromCallable(() -> helper.getService().getWeather(locationPoint).execute());
     }
 }

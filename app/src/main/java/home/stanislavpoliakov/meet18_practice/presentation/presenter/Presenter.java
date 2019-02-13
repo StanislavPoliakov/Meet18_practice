@@ -20,6 +20,9 @@ import home.stanislavpoliakov.meet18_practice.WeatherApplication;
 import home.stanislavpoliakov.meet18_practice.domain.DomainContract;
 import home.stanislavpoliakov.meet18_practice.domain.Weather;
 import home.stanislavpoliakov.meet18_practice.presentation.ViewContract;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
+
 import static home.stanislavpoliakov.meet18_practice.presentation.presenter.Convert.*;
 
 
@@ -79,9 +82,30 @@ public class Presenter implements DomainContract.Presenter{
                     detailInfo.putString("uvIndex", "Ультрафиолетовый индекс: " + data.uvIndex);
                     detailInfo.putString("tempMinInfo", toTempMinInfo(data.temperatureMin, data.temperatureMinTime));
                     detailInfo.putString("tempMaxInfo", toTempMaxInfo(data.temperatureMax, data.temperatureMaxTime));
+                    detailInfo.putString("image", setUrl(timeZone));
                     //detailInfo.putString("timeZone", timeZone);
                     return detailInfo;
                 }).collect(Collectors.toList());
+    }
+
+    private String setUrl(String timeZone) {
+        switch (timeZone) {
+            case "Europe/Moscow":
+                return "https://www.svyaznoy.travel/img/scontent/images/Москва_1.jpg?v2";
+            case "Asia/Vladivostok":
+                return "https://media.tvzvezda.ru/news/vstrane_i_mire/content/201810100451-91k1.htm/1.jpg";
+            case "Asia/Bangkok":
+                return "http://29palms.ru/photo/vip/thailand/bangkok_040116/resized/001_Klub_puteshestviy_Pavla_Aksenova_Tailand_Bangkok_Foto_potowizard_-_Depositphotos.jpg";
+            case "Asia/Makassar":
+                return "https://www.votpusk.ru/country/ctimages/new/id01.jpg";
+            case "Asia/Dubai":
+                return "https://nsp.ru/files/newsImages/6b/47/18928_big.jpg";
+            case "Atlantic/Canary":
+                return "https://static.tonkosti.ru/images/3/32/Главная_улица_Санта-Крус-де-Тенерифе.jpg";
+            case "America/New_York":
+                return "http://www.forumdaily.com/wp-content/uploads/2018/08/Depositphotos_3958211_m-2015-1.jpg";
+        }
+        return null;
     }
 
     /**
@@ -123,10 +147,7 @@ public class Presenter implements DomainContract.Presenter{
     public void onSpinnerSelected(String cityName) {
         try {
             String cityLocation = getCoordinates(cityName);
-
-            //Определяем и запускаем AsyncTask для работы с сетью и базой
-            FetchDataTask fetchDataTask = new FetchDataTask();
-            fetchDataTask.execute(cityLocation);
+            getWeatherData(cityLocation);
         } catch (IOException ex) {
             ex.printStackTrace();
         }
@@ -150,18 +171,14 @@ public class Presenter implements DomainContract.Presenter{
     }
 
     /**
-     * Для запуска work-потока, с результатом в UI идеально подошел AsyncTask
+     * Метод получения данных из Interactor. RxJava
+     * @param cityLocation
      */
-    private class FetchDataTask extends AsyncTask<String, Void, Weather> {
-        @Override
-        protected Weather doInBackground(String... strings) {
-            return useCaseInteractor.getData(strings[0]);
-        }
-
-        @Override
-        protected void onPostExecute(Weather weather) {
-            show(weather);
-        }
+    private void getWeatherData(String cityLocation) {
+        useCaseInteractor.getData(cityLocation)
+                .subscribeOn(Schedulers.computation())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(this::show);
     }
 
     /**

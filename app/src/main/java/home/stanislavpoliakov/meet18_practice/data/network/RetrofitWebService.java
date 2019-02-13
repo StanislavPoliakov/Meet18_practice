@@ -1,6 +1,7 @@
 package home.stanislavpoliakov.meet18_practice.data.network;
 
 import home.stanislavpoliakov.meet18_practice.domain.Weather;
+import io.reactivex.Observable;
 import retrofit2.Call;
 import retrofit2.http.GET;
 import retrofit2.http.Path;

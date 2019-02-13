@@ -1,5 +1,7 @@
 package home.stanislavpoliakov.meet18_practice.domain;
 
+import io.reactivex.Observable;
+
 public interface DomainContract {
 
 
@@ -39,7 +41,7 @@ public interface DomainContract {
          * дальнейшей отрисовки
          * @param cityLocation координаты города в формате String
          */
-        Weather getData(String cityLocation);
+        Observable<Weather> getData(String cityLocation);
     }
 
 
@@ -67,10 +69,10 @@ public interface DomainContract {
     interface NetworkOperations {
 
         /**
-         * Метод получения данных из сети (API)
+         * Метод получения данных из сети (API). RxJava
          * @param cityLocation координаты города
          * @return данные о погоде
          */
-        Weather fetchData(String cityLocation);
+        Observable<Weather> fetchData(String cityLocation);
     }
 }
