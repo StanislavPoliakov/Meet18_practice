@@ -2,24 +2,38 @@ package home.stanislavpoliakov.meet18_practice.presentation.view;
 
 
 import android.app.Dialog;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.DialogFragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import home.stanislavpoliakov.meet18_practice.R;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 
+import home.stanislavpoliakov.meet18_practice.R;
+import io.reactivex.Observable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
+import io.reactivex.subjects.PublishSubject;
 
 
 /**
  * Класс фрагмента детальной информации
  */
 public class DetailFragment extends DialogFragment {
-    private static final String TAG = "meet17_logs";
+    private static final String TAG = "meet18_logs";
 
     /**
      * Получаем объект класса в статическом методе для FragmentManager
@@ -28,6 +42,32 @@ public class DetailFragment extends DialogFragment {
      */
     public static DetailFragment newInstance() {
         return new DetailFragment();
+    }
+
+    public Drawable getBitmap(URL url) {
+        try {
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.connect();
+            int responseCode = connection.getResponseCode();
+            if (responseCode == 200) {
+                return new BitmapDrawable(getResources(), connection.getInputStream());
+                //return  BitmapFactory.decodeStream(connection.getInputStream());
+            } else return null;
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+        return null;
+    }
+
+    private URL stringToUrl(String value) {
+        URL url = null;
+        try {
+            //Log.d(TAG, "stringToUrl: Thread = " + Thread.currentThread());
+            url = new URL(value);
+        } catch (MalformedURLException ex) {
+            ex.printStackTrace();
+        }
+        return url;
     }
 
     /**
@@ -54,10 +94,15 @@ public class DetailFragment extends DialogFragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        //this.view = view;
         initViews(view);
-    }
+        Observable<String> urlString = Observable.just(getArguments().getString("image"));
 
+        urlString.subscribeOn(Schedulers.newThread())
+                .map(this::stringToUrl)
+                .map(this::getBitmap)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(view::setBackground);
+    }
 
     /**
      * Bundle с подробной информацией о погоде, переданный в качестве аргументов фрагмента
